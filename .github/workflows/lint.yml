@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2025 Stefan Hackenberg
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: "Lint"
+
+on:
+  push:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pdm-project/setup-pdm@v4
+      - run: pdm install --dev
+      - run: pdm run reuse lint
+      - run: pdm run ruff format --check .
+      - run: pdm run ruff check src

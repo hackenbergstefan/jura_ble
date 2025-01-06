@@ -49,7 +49,7 @@ async def _get_key(address):
 
 class JuraBle:
     @staticmethod
-    async def create(address: Optional[str]=None, timeout: int = 20):
+    async def create(address: Optional[str] = None, timeout: int = 20):
         return JuraBle(address=address, key=await _get_key(address), timeout=timeout)
 
     def __init__(self, address: str, key: int, *, timeout: int = 20):

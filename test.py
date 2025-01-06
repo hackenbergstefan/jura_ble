@@ -5,10 +5,7 @@
 import asyncio
 import logging
 
-from bleak import BleakClient
-
-from src.jura_ble import JuraBle, encode_decode
-from src.jura_ble.classes import load_products
+from src.jura_ble import JuraBle
 
 address = "DB:4E:54:44:39:9F"
 
@@ -19,7 +16,7 @@ logging.getLogger("src.jura_ble").setLevel(level=logging.DEBUG)
 async def main(address):
     jura = await JuraBle.create(address)
     async with jura:
-        # print(await jura.about_machine())
+        print(await jura.about_machine())
         # print(await jura.lock_machine())
         # print("locked")
         # await asyncio.sleep(20)
