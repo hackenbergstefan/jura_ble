@@ -1,8 +1,14 @@
+# SPDX-FileCopyrightText: 2025 Stefan Hackenberg
+#
+# SPDX-License-Identifier: CC0-1.0
+
 import asyncio
 import logging
+
 from bleak import BleakClient
 
 from src.jura_ble import JuraBle, encode_decode
+from src.jura_ble.classes import load_products
 
 address = "DB:4E:54:44:39:9F"
 

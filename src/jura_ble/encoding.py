@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2025 Jutta-Proto
+# SPDX-FileCopyrightText: 2025 Stefan Hackenberg
+#
+# SPDX-License-Identifier: GPL-3.0-only
+
 """
 Encodes and decodes data using proprietary algorithm in JURA protocol.
 

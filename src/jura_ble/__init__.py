@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2025 Jutta-Proto
+# SPDX-FileCopyrightText: 2025 Stefan Hackenberg
+#
+# SPDX-License-Identifier: GPL-3.0-only
+
 import asyncio
 from dataclasses import dataclass
 import logging
@@ -44,7 +49,7 @@ async def _get_key(address):
 
 class JuraBle:
     @staticmethod
-    async def create(address: str, timeout: int = 20):
+    async def create(address: Optional[str]=None, timeout: int = 20):
         return JuraBle(address=address, key=await _get_key(address), timeout=timeout)
 
     def __init__(self, address: str, key: int, *, timeout: int = 20):

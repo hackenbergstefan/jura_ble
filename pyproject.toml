@@ -1,15 +1,16 @@
+# SPDX-FileCopyrightText: 2025 Stefan Hackenberg
+#
+# SPDX-License-Identifier: CC0-1.0
+
 [project]
 name = "jura-ble"
 version = "0.1.0"
 description = "Default template for PDM package"
-authors = [
-    {name = "Stefan Hackenberg", email = "mail@stefan-hackenberg.de"},
-]
+authors = [{ name = "Stefan Hackenberg", email = "mail@stefan-hackenberg.de" }]
 dependencies = ["bleak>=0.22.3"]
 requires-python = "==3.12.*"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "GPL-3.0-only" }
 
-
-[tool.pdm]
-distribution = false
+[project.optional-dependencies]
+dev = ["reuse>=5.0.2", "ruff>=0.8.6"]
