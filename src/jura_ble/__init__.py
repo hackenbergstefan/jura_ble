@@ -4,15 +4,15 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import asyncio
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from types import TracebackType
 from typing import Literal, Optional, Self, Type
 
 from bleak import BleakClient, BleakScanner
 
+from .classes import CoffeeProduct, MachineData
 from .encoding import encode_decode
-from .classes import MachineData
 
 
 @dataclass
@@ -114,17 +114,11 @@ class JuraBle:
 
     async def brew_product(
         self,
-        product: int,
-        strength: int,
-        water: int,
-        temperature: int,
+        product: CoffeeProduct,
     ):
-        water //= 5  # 5 ml per unit
         await self._write(
             "Start Product",
-            bytes([product, 0, strength, water, 0, 0, temperature])
-            + bytes.fromhex("00010000000000")
-            + bytes([self.key]),
+            product.to_bytes() + bytes([self.key]),
         )
 
     async def product_progress(self):
