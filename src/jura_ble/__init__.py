@@ -1,6 +1,8 @@
 import asyncio
 from dataclasses import dataclass
-from typing import Optional
+import logging
+from types import TracebackType
+from typing import Literal, Optional, Self, Type
 
 from bleak import BleakClient, BleakScanner
 
@@ -48,19 +50,29 @@ class JuraBle:
     def __init__(self, address: str, key: int, *, timeout: int = 20):
         self.client = BleakClient(address, timeout=timeout)
         self.key = key
+        self._heartbeat_task = None
 
-    async def connect(self):
-        asyncio.run(self.client.connect())
-
-    async def _read(self, characteristic: str, encoded: bool = True):
+    async def _read(self, characteristic: str, *, encoded: bool = True):
         result = await self.client.read_gatt_char(characteristics[characteristic].uuid)
-        return encode_decode(result, key=self.key) if encoded else result
-
-    async def _write(self, characteristic: str, data: bytes, encoded: bool = True):
-        await self.client.write_gatt_char(
-            characteristics[characteristic].uuid,
-            encode_decode(data, key=self.key) if encoded else data,
+        result = encode_decode(result, key=self.key) if encoded else result
+        logging.getLogger(__name__).debug(
+            f"Read from {characteristic}: '{result.hex()}'"
         )
+        return result
+
+    async def _write(
+        self,
+        characteristic: str,
+        data: bytes,
+        encoded: bool = True,
+        prepend_key: bool = True,
+    ):
+        data = bytes([self.key]) + data if prepend_key else data
+        data = encode_decode(data, key=self.key) if encoded else data
+        logging.getLogger(__name__).debug(
+            f"Writing to {characteristic}: '{data.hex()}'"
+        )
+        await self.client.write_gatt_char(characteristics[characteristic].uuid, data)
 
     async def about_machine(self):
         return MachineData.from_bytes(await self._read("About Machine", encoded=False))
@@ -69,13 +81,66 @@ class JuraBle:
         return await self._read("Machine Status")
 
     async def heartbeat(self):
-        await self._write("P Mode", bytes([self.key]) + b"\x7f\x80")
+        await self._write("P Mode", b"\x7f\x80")
 
     async def lock_machine(self):
-        await self._write("Barista Mode", b"\x00\x01")
+        await self._write("Barista Mode", b"\x01")
 
     async def unlock_machine(self):
-        await self._write("Barista Mode", b"\x00\x00")
+        await self._write("Barista Mode", b"\x00")
 
-    async def statistics(self):
-        await self._write("Barista Mode", b"\x00\x00")
+    async def statistics(
+        self,
+        mode: Literal["total"] | Literal["daily"] = "total",
+    ) -> list[int]:
+        await self._write(
+            "Statistics Command",
+            (b"\x00\x01" if mode == "total" else b"\x00\x10") + b"\xff\xff",
+        )
+        await asyncio.sleep(2)
+        result = await self._read("Statistics Command")
+        if result[0] == 0x0E:
+            raise Exception("Statistics not available")
+        result = await self._read("Statistics Data")
+        return [
+            int.from_bytes(result[3 * i : 3 * i + 3], "big")
+            for i in range(len(result) // 3)
+        ]
+
+    async def brew_product(
+        self,
+        product: int,
+        strength: int,
+        water: int,
+        temperature: int,
+    ):
+        water //= 5  # 5 ml per unit
+        await self._write(
+            "Start Product",
+            bytes([product, 0, strength, water, 0, 0, temperature])
+            + bytes.fromhex("00010000000000")
+            + bytes([self.key]),
+        )
+
+    async def product_progress(self):
+        return await self._read("Product Progress")
+
+    async def _heartbeat_periodic(self):
+        while True:
+            await self.heartbeat()
+            await asyncio.sleep(10)
+
+    async def __aenter__(self) -> Self:
+        await self.client.connect()
+        loop = asyncio.get_event_loop()
+        self._heartbeat_task = loop.create_task(self._heartbeat_periodic())
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException],
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> None:
+        self._heartbeat_task.cancel()
+        await self.client.disconnect()
