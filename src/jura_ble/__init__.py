@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import asyncio
+import itertools
 import logging
 from dataclasses import dataclass
 from types import TracebackType
@@ -11,8 +12,9 @@ from typing import Literal, Optional, Self, Type
 
 from bleak import BleakClient, BleakScanner
 
-from .classes import CoffeeProduct, Machine, MachineData
+from .classes import CoffeeProduct, MachineData
 from .encoding import encode_decode
+from .machine import Machine
 
 
 @dataclass
@@ -96,8 +98,10 @@ class JuraBle:
     async def about_machine(self):
         return MachineData.from_bytes(await self._read("About Machine", encoded=False))
 
-    async def machine_status(self):
-        return await self._read("Machine Status")
+    async def machine_status(self) -> list[str]:
+        status = await self._read("Machine Status")
+        status = itertools.chain(*[list(f"{x:08b}") for x in status[1:9]])
+        return self.model.decode_status(status)
 
     async def heartbeat(self):
         await self._write("P Mode", b"\x7f\x80")
@@ -135,8 +139,13 @@ class JuraBle:
             product.to_bytes() + bytes([self.key]),
         )
 
-    async def product_progress(self):
-        return await self._read("Product Progress")
+    async def product_progress(self) -> dict[str, bytes | int] | None:
+        """Returns the progress of the current product or None if machine idle."""
+        status = await self._read("Product Progress")
+        if status[15] == 1:
+            return None
+        # TODO: More reverse engineering needed
+        return {"step": status[1], "product": status[2], "rest": status[3:15]}
 
     async def _heartbeat_periodic(self):
         while True:

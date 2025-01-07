@@ -3,17 +3,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 
-import io
-import zipfile
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
-from xml.etree import ElementTree as ET
-
-import requests
-
-_PRODUCTS_URL = "https://github.com/AlexxIT/Jura/raw/refs/tags/v1.1.0/custom_components/jura/core/resources.zip"
-"""URL to download the product XML files."""
 
 
 def decode_date(date_value: int) -> date:
@@ -75,98 +67,6 @@ class MachineData:
             coffee_machine_ver_str=coffee_machine_ver_str,
             last_connected_tablet_id=last_connected_tablet_id,
         )
-
-
-class Machine:
-    def __init__(self, model: str):
-        self.model = model
-        self.product_properties, self.products = self._load_products()
-
-    def _load_products(
-        self,
-    ) -> tuple[dict[str, "ProductProperty"], list["CoffeeProduct"]]:
-        """Load products and product properties from XML."""
-        xml = Machine._download_product_xml(self.model).getroot()
-
-        def load_properties() -> dict[str, ProductProperty]:
-            """Load product properties from XML."""
-            product_properties = {}
-            for xml_name, name in ProductProperty.SUPPORTED_PROPERTIES.items():
-                xml_prop = xml.find(f".//{{*}}{xml_name}")
-                argument_number = int(xml_prop.attrib["Argument"][1:])
-                if len(xml_prop) > 0:
-                    # Load value mapping
-                    value_mapping = {
-                        int(value.attrib["Value"], 16): value.attrib["Name"]
-                        for value in xml_prop.findall(".//{*}ITEM")
-                    }
-                    prop = ProductProperty(
-                        name=name,
-                        xml_name=xml_name,
-                        argument_number=argument_number,
-                        min=min(value_mapping.keys()),
-                        max=max(value_mapping.keys()),
-                        value_mapping=value_mapping,
-                    )
-                else:
-                    prop = ProductProperty(
-                        name=name,
-                        xml_name=xml_name,
-                        argument_number=argument_number,
-                        min=int(xml_prop.attrib["Min"]),
-                        max=int(xml_prop.attrib["Max"]),
-                        step=int(xml_prop.attrib.get("Step", 1)),
-                    )
-                product_properties[name] = prop
-            return product_properties
-
-        product_properties = load_properties()
-
-        def load_products():
-            """Load products from XML."""
-            products = []
-            for product in xml.findall(".//{*}PRODUCT"):
-                code = int(product.attrib["Code"], base=16)
-                name = product.attrib["Name"]
-                properties = {
-                    prop.name: int(
-                        product_property.attrib.get(
-                            "Value", product_property.attrib.get("Default", prop.min)
-                        )
-                    )
-                    if (product_property := product.find(f"{{*}}{prop.xml_name}"))
-                    is not None
-                    else prop.min
-                    for prop in product_properties.values()
-                }
-                products.append(
-                    CoffeeProduct(
-                        code=code,
-                        name=name,
-                        _props=product_properties,
-                        **properties,
-                    )
-                )
-            return products
-
-        return product_properties, load_products()
-
-    @staticmethod
-    def _download_product_xml(product_name: str) -> ET.ElementTree:
-        """
-        Download and open the product XML file from the Homeassist repository.
-
-        The product XML files are stored in a ZIP file.
-        """
-        r = requests.get(_PRODUCTS_URL, stream=True)
-        with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-            product_file = [
-                file
-                for file in z.infolist()
-                if product_name in file.filename and file.filename.endswith(".xml")
-            ][0]
-            with z.open(product_file) as f:
-                return ET.parse(f)
 
 
 @dataclass
