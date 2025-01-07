@@ -11,7 +11,7 @@ from typing import Literal, Optional, Self, Type
 
 from bleak import BleakClient, BleakScanner
 
-from .classes import CoffeeProduct, MachineData
+from .classes import CoffeeProduct, Machine, MachineData
 from .encoding import encode_decode
 
 
@@ -49,10 +49,24 @@ async def _get_key(address):
 
 class JuraBle:
     @staticmethod
-    async def create(address: Optional[str] = None, timeout: int = 20):
-        return JuraBle(address=address, key=await _get_key(address), timeout=timeout)
+    async def create(model: str, address: Optional[str] = None, timeout: int = 20):
+        if address is None:
+            devices = await BleakScanner.discover()
+            for device in devices:
+                if "BlueFrog" in device.name:
+                    address = device.address
+                    break
+        if address is None:
+            raise Exception("No JURA BLE device found")
+        return JuraBle(
+            model=model,
+            address=address,
+            key=await _get_key(address),
+            timeout=timeout,
+        )
 
-    def __init__(self, address: str, key: int, *, timeout: int = 20):
+    def __init__(self, model: str, address: str, key: int, *, timeout: int = 20):
+        self.model = Machine(model)
         self.client = BleakClient(address, timeout=timeout)
         self.key = key
         self._heartbeat_task = None

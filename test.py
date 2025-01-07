@@ -8,13 +8,14 @@ import logging
 from src.jura_ble import JuraBle
 
 address = "DB:4E:54:44:39:9F"
+machine = "EF658S_C"
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("src.jura_ble").setLevel(level=logging.DEBUG)
 
 
-async def main(address):
-    jura = await JuraBle.create(address)
+async def main():
+    jura = await JuraBle.create(machine)
     async with jura:
         print(await jura.about_machine())
         # print(await jura.lock_machine())
@@ -29,11 +30,11 @@ async def main(address):
         #     water=20,
         #     temperature=1,
         # )
-        while True:
-            await asyncio.sleep(1)
-            print((await jura.product_progress()).hex())
+        # while True:
+        #     await asyncio.sleep(1)
+        #     print((await jura.product_progress()).hex())
 
 
-asyncio.run(main(address))
+asyncio.run(main())
 
 # print(encode_decode(b"\x2a\x01", 0x2A).hex())
