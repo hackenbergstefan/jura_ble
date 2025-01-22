@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 [project]
-name = "jura-ble"
+name = "jura_ble"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [{ name = "Stefan Hackenberg", email = "mail@stefan-hackenberg.de" }]
