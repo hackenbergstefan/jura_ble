@@ -104,12 +104,15 @@ class JuraBle:
         return self.model.decode_status(status)
 
     async def heartbeat(self):
+        logging.getLogger(__name__).debug("heartbeat")
         await self._write("P Mode", b"\x7f\x80")
 
     async def lock_machine(self):
+        logging.getLogger(__name__).debug("lock_machine")
         await self._write("Barista Mode", b"\x01")
 
     async def unlock_machine(self):
+        logging.getLogger(__name__).debug("unlock_machine")
         await self._write("Barista Mode", b"\x00")
 
     async def statistics(
@@ -134,6 +137,7 @@ class JuraBle:
         self,
         product: CoffeeProduct,
     ):
+        logging.getLogger(__name__).debug(f"brew_product: {product}")
         await self._write(
             "Start Product",
             product.to_bytes() + bytes([self.key]),
@@ -142,6 +146,7 @@ class JuraBle:
     async def product_progress(self) -> dict[str, bytes | int] | None:
         """Returns the progress of the current product or None if machine idle."""
         status = await self._read("Product Progress")
+        logging.getLogger(__name__).debug(f"product_progress: {status}")
         if status[15] == 1:
             return None
         # TODO: More reverse engineering needed
@@ -154,6 +159,7 @@ class JuraBle:
 
     async def __aenter__(self) -> Self:
         await self.client.connect()
+        logging.getLogger(__name__).debug("Connected")
         loop = asyncio.get_event_loop()
         self._heartbeat_task = loop.create_task(self._heartbeat_periodic())
         return self
@@ -166,3 +172,4 @@ class JuraBle:
     ) -> None:
         self._heartbeat_task.cancel()
         await self.client.disconnect()
+        logging.getLogger(__name__).debug("Disconnected")
