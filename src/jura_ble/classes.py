@@ -127,5 +127,5 @@ class CoffeeProduct:
         for prop in self._props.values():
             byts[prop.argument_number - 1] = getattr(self, prop.name)
             if prop.name == "water":
-                byts[prop.argument_number - 1] /= 5
+                byts[prop.argument_number - 1] //= 5
         return bytes(byts)

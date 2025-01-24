@@ -18,7 +18,7 @@ def test_brew():
     prod = machine.products[0]
     assert prod.name == "Ristretto"
     assert prod.to_bytes() == bytes.fromhex(
-        "01 02 04 19 01 00 02 01 00 00 00 00 00 00 00"
+        "01 02 04 05 01 00 02 01 00 00 00 00 00 00 00"
     )
 
 
