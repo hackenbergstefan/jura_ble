@@ -100,7 +100,9 @@ class JuraBle:
 
     async def machine_status(self) -> list[str]:
         status = await self._read("Machine Status")
-        status = itertools.chain(*[list(f"{x:08b}") for x in status[1:9]])
+        status = [
+            int(x) for x in itertools.chain(*[list(f"{x:08b}") for x in status[1:9]])
+        ]
         return self.model.decode_status(status)
 
     async def heartbeat(self):

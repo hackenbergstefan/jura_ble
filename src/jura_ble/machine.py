@@ -76,7 +76,7 @@ def load_products(
     products = []
     for product in xml.findall(".//{*}PRODUCT"):
         code = int(product.attrib["Code"], base=16)
-        name = product.attrib["Name"]
+        name = product.attrib["Name"].strip()
         properties = {
             prop.name: int(
                 product_property.attrib.get(
