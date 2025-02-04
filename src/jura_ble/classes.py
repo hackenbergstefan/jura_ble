@@ -125,7 +125,5 @@ class CoffeeProduct:
         """
         byts = bytearray([self.code]) + 14 * b"\x00"
         for prop in self._props.values():
-            byts[prop.argument_number - 1] = getattr(self, prop.name)
-            if prop.name == "water":
-                byts[prop.argument_number - 1] //= 5
+            byts[prop.argument_number - 1] = getattr(self, prop.name) // prop.step
         return bytes(byts)
