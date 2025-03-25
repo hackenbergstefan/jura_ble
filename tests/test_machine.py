@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 
+from jura_ble import ProductProgress, ProductProgressState
 from jura_ble.machine import Machine, bytes_to_bits
 
 
@@ -37,4 +38,26 @@ def test_decode_status():
             )
         )
         == []
+    )
+
+
+def test_decode_product_progress():
+    progress = ProductProgress(
+        bytes.fromhex("2a 34 04 04 04 00 0e 01 01 09 12 11 00 00 11 00 00 00 00 00")
+    )
+    assert progress.state == ProductProgressState.MILK_FOAM_VOLUME
+    assert progress.coffee_strength == (4, 4)
+    assert progress.water_volume == (0, 0xE)
+    assert progress.milk_time == (1, 1)
+    assert progress.milk_foam == (9, 0x12)
+    assert progress.water_temperature == 0x11
+    assert progress.pause_time == 0
+    assert progress.intake_percentage == 0x11
+    assert progress.valid is True
+
+    assert (
+        ProductProgress(
+            bytes.fromhex("2a 3e 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00")
+        ).state
+        == ProductProgressState.LAST_PROGRESS_STATE
     )

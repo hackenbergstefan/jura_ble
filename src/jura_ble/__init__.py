@@ -7,6 +7,7 @@ import asyncio
 import itertools
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from types import TracebackType
 from typing import Literal, Optional, Self, Type
 
@@ -145,14 +146,11 @@ class JuraBle:
             product.to_bytes() + bytes([self.key]),
         )
 
-    async def product_progress(self) -> dict[str, bytes | int] | None:
+    async def product_progress(self) -> "ProductProgress":
         """Returns the progress of the current product or None if machine idle."""
-        status = await self._read("Product Progress")
-        logging.getLogger(__name__).debug(f"product_progress: {status}")
-        if status[15] == 1:
-            return None
-        # TODO: More reverse engineering needed
-        return {"step": status[1], "product": status[2], "rest": status[3:15]}
+        progress = ProductProgress(await self._read("Product Progress"))
+        logging.getLogger(__name__).debug(f"product_progress: {progress}")
+        return progress
 
     async def _heartbeat_periodic(self):
         while True:
@@ -175,3 +173,126 @@ class JuraBle:
         self._heartbeat_task.cancel()
         await self.client.disconnect()
         logging.getLogger(__name__).debug("Disconnected")
+
+
+class ProductProgressState(Enum):
+    """
+    State of product progress
+
+    Reverse engineered from
+    joe_android_connector.src.connection.common.Progress$Companion$mapStateToProductProgressState$1
+    """
+
+    SMART_ALERT_PAUSE = 0x19
+    MILK_FOAM_BEAN_AMOUNT = 0x31
+    MILK_FOAM_MILK_VOLUME = 0x32
+    MILK_FOAM_PAUSE = 0x33
+    MILK_FOAM_VOLUME = 0x34
+    MILK_FOAM_WATER_VOLUME = 0x37
+    COFFEE_BEAN_AMOUNT = 0x39
+    COFFEE_WATER_AMOUNT = 0x3C
+    LAST_PROGRESS_STATE = 0x3E
+    HOTWATER_TEMPERATURE = 0x40
+    HOTWATER_VOLUME = 0x41
+    STEAM_TEMPERATURE = 0x43
+
+
+class ProductProgressArgument(Enum):
+    """
+    Product arguments
+
+    Reverse engineered from
+    joe_android_connector.src.connection.enums.ProductArgument
+    """
+
+    ACTUAL_COFFEE_STRENGTH = 0
+    MAX_COFFEE_STRENGTH = 1
+    ACTUAL_WATER_VOLUME = 2
+    MAX_WATER_VOLUME = 3
+    ACTUAL_MILK_TIME = 4
+    MAX_MILK_TIME = 5
+    ACTUAL_MILK_FOAM_TIME_STEAM_TEMPERATURE_BYPASS_WATER_AMOUNT = 6
+    MAX_MILK_FOAM_TIME_STEAM_TEMPERATURE_BYPASS_WATER_AMOUNT = 7
+    MAX_WATER_TEMPERATURE = 8
+    ACTUAL_PAUSE_TIME = 9
+    MAX_PAUSE_TIME = 10
+    INTAKE_PERCENTAGE = 11
+    MILK_FOAM_TEMPERATURE = 12
+    INVALID = 13
+
+
+class ProductProgress:
+    ARGUMENT_OFFSET = 2
+
+    def __init__(self, data: bytes) -> None:
+        self._data = data[1:]
+
+    @property
+    def product_code(self) -> int:
+        return self._data[1]
+
+    @property
+    def state(self) -> ProductProgressState:
+        return ProductProgressState(self._data[0])
+
+    def _arg(self, arg: ProductProgressArgument):
+        return self._data[self.ARGUMENT_OFFSET + arg.value]
+
+    @property
+    def coffee_strength(self) -> tuple[int, int]:
+        return (
+            self._arg(ProductProgressArgument.ACTUAL_COFFEE_STRENGTH),
+            self._arg(ProductProgressArgument.MAX_COFFEE_STRENGTH),
+        )
+
+    @property
+    def water_volume(self) -> tuple[int, int]:
+        return (
+            self._arg(ProductProgressArgument.ACTUAL_WATER_VOLUME),
+            self._arg(ProductProgressArgument.MAX_WATER_VOLUME),
+        )
+
+    @property
+    def milk_time(self) -> tuple[int, int]:
+        return (
+            self._arg(ProductProgressArgument.ACTUAL_MILK_TIME),
+            self._arg(ProductProgressArgument.MAX_MILK_TIME),
+        )
+
+    @property
+    def milk_foam(self) -> tuple[int, int]:
+        return (
+            self._arg(
+                ProductProgressArgument.ACTUAL_MILK_FOAM_TIME_STEAM_TEMPERATURE_BYPASS_WATER_AMOUNT
+            ),
+            self._arg(
+                ProductProgressArgument.MAX_MILK_FOAM_TIME_STEAM_TEMPERATURE_BYPASS_WATER_AMOUNT
+            ),
+        )
+
+    @property
+    def water_temperature(self) -> int:
+        return self._arg(ProductProgressArgument.MAX_WATER_TEMPERATURE)
+
+    @property
+    def pause_time(self) -> int:
+        return self._arg(ProductProgressArgument.MAX_PAUSE_TIME)
+
+    @property
+    def intake_percentage(self) -> int:
+        return self._arg(ProductProgressArgument.INTAKE_PERCENTAGE)
+
+    @property
+    def valid(self) -> bool:
+        return self._arg(ProductProgressArgument.INVALID) == 0
+
+    def __str__(self) -> str:
+        return (
+            "<ProductProgress "
+            + " ".join(
+                f"{arg}={getattr(self, arg)}"
+                for arg, prop in ProductProgress.__dict__.items()
+                if isinstance(prop, property)
+            )
+            + ">"
+        )
