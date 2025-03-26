@@ -183,6 +183,7 @@ class ProductProgressState(Enum):
     joe_android_connector.src.connection.common.Progress$Companion$mapStateToProductProgressState$1
     """
 
+    IDLE = 0x00
     SMART_ALERT_PAUSE = 0x19
     MILK_FOAM_BEAN_AMOUNT = 0x31
     MILK_FOAM_MILK_VOLUME = 0x32
@@ -191,6 +192,7 @@ class ProductProgressState(Enum):
     MILK_FOAM_WATER_VOLUME = 0x37
     COFFEE_BEAN_AMOUNT = 0x39
     COFFEE_WATER_AMOUNT = 0x3C
+    UNKOWN = 0x3D
     LAST_PROGRESS_STATE = 0x3E
     HOTWATER_TEMPERATURE = 0x40
     HOTWATER_VOLUME = 0x41
