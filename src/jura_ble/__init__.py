@@ -197,6 +197,7 @@ class ProductProgressState(Enum):
     HOTWATER_TEMPERATURE = 0x40
     HOTWATER_VOLUME = 0x41
     STEAM_TEMPERATURE = 0x43
+    INVALID = 0xFF  # Custom state added for invalid numbers
 
 
 class ProductProgressArgument(Enum):
@@ -235,7 +236,10 @@ class ProductProgress:
 
     @property
     def state(self) -> ProductProgressState:
-        return ProductProgressState(self._data[0])
+        try:
+            return ProductProgressState(self._data[0])
+        except ValueError:
+            return ProductProgressState.INVALID
 
     def _arg(self, arg: ProductProgressArgument):
         return self._data[self.ARGUMENT_OFFSET + arg.value]
