@@ -15,7 +15,7 @@ from .classes import CoffeeProduct, ProductProperty
 Machine related data found in XML files.
 """
 
-PRODUCTS_URL = "https://github.com/AlexxIT/Jura/raw/refs/tags/v1.1.0/custom_components/jura/core/resources.zip"
+PRODUCTS_URL = "https://github.com/AlexxIT/Jura/raw/refs/tags/v1.2.0/custom_components/jura/core/resources.zip"
 """URL to download the product XML files."""
 
 

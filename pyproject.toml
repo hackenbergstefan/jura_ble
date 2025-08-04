@@ -4,7 +4,7 @@
 
 [project]
 name = "jura_ble"
-version = "2.0.2"
+version = "2.0.3"
 description = "Default template for PDM package"
 authors = [{ name = "Stefan Hackenberg", email = "mail@stefan-hackenberg.de" }]
 dependencies = ["bleak>=0.22.3", "requests>=2.32.3"]
